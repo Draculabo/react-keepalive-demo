@@ -1,17 +1,5 @@
-import {
-    ComponentType,
-    Fragment,
-    ReactNode,
-    RefObject, useCallback,
-    useImperativeHandle,
-    useLayoutEffect,
-    useRef,
-    useState,
-} from 'react';
+import { ComponentType, Fragment, ReactNode, RefObject, useCallback, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
 import CacheComponent from '../CacheComponent';
-
-
-
 
 interface Props {
     children: ReactNode;
@@ -51,14 +39,14 @@ interface Props {
      * suspenseElement: Suspense Wrapper Component
      */
     suspenseElement?: ComponentType<{
-        children: ReactNode,
+        children: ReactNode;
     }>;
 
     /**
      *  errorElement: for every cacheNode's ErrorBoundary
      */
     errorElement?: ComponentType<{
-        children: ReactNode,
+        children: ReactNode;
     }>;
 }
 
@@ -103,18 +91,26 @@ const RemoveStrategies: Record<string, (nodes: CacheNode[]) => CacheNode[]> = {
 };
 
 type KeepAliveRef = {
-    getCaches: () => Array<CacheNode>
+    getCaches: () => Array<CacheNode>;
 
-    removeCache: (name: string) => void
+    removeCache: (name: string) => void;
 
-    cleanAllCache: () => void
+    cleanAllCache: () => void;
 
-    cleanOtherCache: () => void
-}
-
+    cleanOtherCache: () => void;
+};
 
 function KeepAlive(props: Props) {
-    const { aliveRef, cache = true, strategy = 'Pre', activeName,children, max = 10, errorElement } = props;
+    const {
+        aliveRef,
+        cache = true,
+        strategy = 'Pre',
+        activeName,
+        children,
+        max = 10,
+        errorElement,
+        suspenseElement: SuspenseElement = Fragment,
+    } = props;
     const containerDivRef = useRef<HTMLDivElement>(null);
     const [cacheNodes, setCacheNodes] = useState<Array<CacheNode>>([]);
 
@@ -174,7 +170,6 @@ function KeepAlive(props: Props) {
                 }
             }
 
-
             const lastActiveTime = Date.now();
 
             const cacheNode = prevCacheNodes.find(item => item.name === activeName);
@@ -221,18 +216,20 @@ function KeepAlive(props: Props) {
         [cacheNodes, setCacheNodes, activeName],
     );
 
-
-    const destroy = useCallback((name: string) => {
+    const destroy = useCallback(
+        (name: string) => {
             setCacheNodes(cacheNodes => {
                 return cacheNodes.filter(item => item.name !== name);
             });
-    }, [setCacheNodes]);
+        },
+        [setCacheNodes],
+    );
 
     return (
         <Fragment>
             <div ref={containerDivRef} className={'keep-alive-render'}></div>
-            {isNil(props.suspenseElement) ? (
-                cacheNodes.map(item => {
+            <SuspenseElement>
+                {cacheNodes.map(item => {
                     const { name, ele } = item;
                     return (
                         <CacheComponent
@@ -246,29 +243,10 @@ function KeepAlive(props: Props) {
                             {ele}
                         </CacheComponent>
                     );
-                })
-            ) : (
-                <props.suspenseElement>
-                    {cacheNodes.map(item => {
-                        const { name, ele } = item;
-                        return (
-                            <CacheComponent
-                                containerDivRef={containerDivRef}
-                                key={name}
-                                errorElement={errorElement}
-                                active={activeName === name}
-                                name={name}
-                                destroy={destroy}
-                            >
-                                {ele}
-                            </CacheComponent>
-                        );
-                    })}
-                </props.suspenseElement>
-            )}
+                })}
+            </SuspenseElement>
         </Fragment>
     );
 }
-
 
 export default KeepAlive;
